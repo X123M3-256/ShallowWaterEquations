@@ -4,65 +4,61 @@ from matplotlib import animation
 
 
 dt=0.0002
-num_points=100;
+num_points=2000;
 dx=1.0/num_points;
+c=0.2*dt/dx
 
-xs=np.linspace(0,1,num_points)
+x=np.linspace(0,1,num_points)
 
 
 #Test cases
 
 def hump():
-	us=np.zeros(num_points)
+	u=np.zeros(num_points)
 	quart=num_points//4;
-	us[0:quart]=0.5*(1-np.cos(8*np.pi*xs[0:quart]))
-	return us
+	u[0:quart]=0.5*(1-np.cos(8*np.pi*x[0:quart]))
+	return u
 
 def slope():
-	us=np.zeros(num_points)
-	us[0]=1.0
+	u=np.zeros(num_points)
+	u[0]=1.0
 	half=num_points//2;
-	us[1:half]=2.0*(0.5-xs[1:half])
-	return us
+	u[1:half]=2.0*(0.5-x[1:half])
+	return u
 
 def square():
-	us=np.zeros(num_points)
+	u=np.zeros(num_points)
 	quart=num_points//4;
-	us[1:quart]=np.full(quart-1,1.0)
-	return us
+	u[1:quart]=np.full(quart-1,1.0)
+	return u
 
-def step():
-	us=np.zeros(num_points)
-	us[0]=1.0;
-	return us
 
-#Difference schemes
+def upwind(u):
+	return u
 
-def cs(us):
-	nus=np.zeros(len(us)-1)
-	nus[:-1]=(us[2:]-us[0:-2])/(2*dx)
-	nus[-1:]=(us[-1:]-us[-2:-1])/dx
-	return nus
+def lax_wendroff(u):
+	return 0.5*(1+c)*u+0.5*(1-c)*np.roll(u,-1)
+	
+def van_leer(r):
+	return (r+np.abs(r))/(1+abs(r))
+	
 
-def bs(us):
-	return (us[1:]-us[0:-1])/dx
-
-#Equations
-
-def linear_advection(c):
-	return lambda us,difference_scheme:-c*difference_scheme(us)
-
-def burgers():
-	return lambda us,difference_scheme:-us[1:]*difference_scheme(us)
-
+def compute_step(u,dt):
+	r_num=(u-np.roll(u,1))
+	r_den=(np.roll(u,-1)-u);
+	r=np.where(np.abs(r_den)<0.0001,np.full(len(r_den),1.0),r_num/r_den)
+	psi=van_leer(r)
+	flux=psi*lax_wendroff(u)+(1-psi)*upwind(u)
+	du=-0.1*(flux-np.roll(flux,1))/dx
+	u[:]=u+dt*du
+	
 
 
 #Main plotting routine
-t=0.0;
 
-def plot_solution(initial_condition,equation,difference_scheme):
+def plot_solution(initial_condition):
 
-	us=initial_condition
+	u=initial_condition
 
 	fig=plt.figure()
 	ax=plt.axes(xlim=(0,1),ylim=(0,2))
@@ -72,13 +68,11 @@ def plot_solution(initial_condition,equation,difference_scheme):
 		line.set_data([],[])
 		return line,
 	def animate(i):
-		global t
 		for i in range(0,100):
-			us[1:]=us[1:]+dt*equation(us,difference_scheme)
-			t+=dt
-		line.set_data(xs,us)
+			compute_step(u,dt)
+		line.set_data(x,u)
 		return line,
 	anim=animation.FuncAnimation(fig,animate,init_func=init,frames=100,interval=int(dt*100000),blit=True)	
 	plt.show()
 
-plot_solution(step(),linear_advection(0.1),cs)
+plot_solution(hump())
