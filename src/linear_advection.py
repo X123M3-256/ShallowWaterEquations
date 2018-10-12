@@ -3,10 +3,10 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 
 
-dt=0.0002
-num_points=2000;
+dt=0.0001
+num_points=100;
 dx=1.0/num_points;
-c=0.2*dt/dx
+c=0.1*dt/dx
 
 x=np.linspace(0,1,num_points)
 
@@ -42,12 +42,14 @@ def lax_wendroff(u):
 def van_leer(r):
 	return (r+np.abs(r))/(1+abs(r))
 	
+def superbee(r):
+	return np.maximum(0,np.maximum(np.minimum(2*r,1),np.minimum(r,2)))
 
 def compute_step(u,dt):
 	r_num=(u-np.roll(u,1))
 	r_den=(np.roll(u,-1)-u);
 	r=np.where(np.abs(r_den)<0.0001,np.full(len(r_den),1.0),r_num/r_den)
-	psi=van_leer(r)
+	psi=superbee(r)
 	flux=psi*lax_wendroff(u)+(1-psi)*upwind(u)
 	du=-0.1*(flux-np.roll(flux,1))/dx
 	u[:]=u+dt*du
@@ -75,4 +77,4 @@ def plot_solution(initial_condition):
 	anim=animation.FuncAnimation(fig,animate,init_func=init,frames=100,interval=int(dt*100000),blit=True)	
 	plt.show()
 
-plot_solution(hump())
+plot_solution(square())
