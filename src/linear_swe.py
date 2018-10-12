@@ -34,10 +34,10 @@ def square():
 	return u
 
 
-def compute_step(h,u,dt):
-	du=-g*(h-np.roll(h,1))/dx
-	u[:]=u+dt*du
-	dh=-H*(np.roll(u,-1)-u)/dx
+def compute_step(h,m,dt):
+	dm=-g*H*(h-np.roll(h,1))/dx
+	m[:]=m+dt*dm
+	dh=-(np.roll(m,-1)-m)/dx
 	h[:]=h+dt*dh
 	
 
@@ -47,7 +47,7 @@ def compute_step(h,u,dt):
 def plot_solution(initial_condition):
 
 	h=initial_condition
-	u=np.zeros(len(initial_condition))
+	m=np.zeros(len(initial_condition))
 
 	fig=plt.figure()
 	ax=plt.axes(xlim=(0,1),ylim=(0,2))
@@ -55,7 +55,7 @@ def plot_solution(initial_condition):
 
 	def animate(i):
 		for i in range(0,10):
-			compute_step(h,u,dt)
+			compute_step(h,m,dt)
 		line.set_data(x,h)
 		return line,
 	anim=animation.FuncAnimation(fig,animate,frames=100,interval=int(dt*100000),blit=True)	
