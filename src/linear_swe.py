@@ -33,12 +33,17 @@ def square():
 	u[1:quart]=np.full(quart-1,1.0)
 	return u
 
+def compute_h_flux(h,m):
+	return m
+
+def compute_m_flux(h,m):
+	return g*H*h
 
 def compute_step(h,m,dt):
-	dm=-g*H*(h-np.roll(h,1))/dx
-	m[:]=m+dt*dm
-	dh=-(np.roll(m,-1)-m)/dx
-	h[:]=h+dt*dh
+	f_m=compute_m_flux(h,m)
+	m[:]=m-(dt/dx)*(f_m-np.roll(f_m,1))
+	f_h=compute_h_flux(h,m)	
+	h[:]=h-(dt/dx)*(np.roll(f_h,-1)-f_h)
 	
 
 
