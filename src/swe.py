@@ -42,12 +42,8 @@ def compute_lax_friedrich_flux(domain,dt):
 	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.5*(dx/dt)*(domain-np.roll(domain,1,axis=1))
 
 def compute_lax_wendroff_flux(domain,dt):
-	domain2=np.empty((2,num_points+1));
-	domain2[:,1:-1]=(0.5*dt/dx)*(g(domain[:,1:])-g(domain[:,0:-1]))+0.5*(domain[:,0:-1]+domain[:,1:])
-	domain2[0,0]=domain2[0,1]
-	domain2[1,0]=-domain2[1,1]
-	domain2[0,-1]=domain2[0,-2]
-	domain2[1,-1]=-domain2[1,-2]
+	center_flux=g(domain)
+	domain2=(0.5*dt/dx)*(np.roll(center_flux,1,axis=1)-center_flux)+0.5*(domain+np.roll(domain,1,axis=1))
 	return g(domain2)
 
 def compute_step(domain,dt):
