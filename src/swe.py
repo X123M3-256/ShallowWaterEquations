@@ -35,7 +35,11 @@ def square():
 	return u
 
 def g(domain):
-	return np.stack([-domain[1],-(((domain[1]*domain[1])/domain[0])+0.5*9.81*domain[0]*domain[0])]);
+	return np.stack([domain[1],(((domain[1]*domain[1])/domain[0])+0.5*9.81*domain[0]*domain[0])]);
+
+def compute_lax_friedrich_flux(domain,dt):
+	center_fluxes=g(domain);
+	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.5*(dx/dt)*(domain-np.roll(domain,1,axis=1))
 
 def compute_lax_wendroff_flux(domain,dt):
 	domain2=np.empty((2,num_points+1));
@@ -47,8 +51,8 @@ def compute_lax_wendroff_flux(domain,dt):
 	return g(domain2)
 
 def compute_step(domain,dt):
-	lax_wendroff_flux=compute_lax_wendroff_flux(domain,dt)
-	domain+=(dt/dx)*(lax_wendroff_flux[:,1:]-lax_wendroff_flux[:,0:-1]);
+	lax_friedrich_flux=compute_lax_friedrich_flux(domain,dt)
+	domain+=(dt/dx)*(lax_friedrich_flux-np.roll(lax_friedrich_flux,-1,axis=1));
 
 #Main plotting routine
 
