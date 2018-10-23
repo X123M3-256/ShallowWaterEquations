@@ -4,7 +4,7 @@ from matplotlib import animation
 
 
 dt=0.0001
-num_points=10000;
+num_points=1000;
 dx=10.0/num_points;
 g=9.81;
 H=1
@@ -39,16 +39,25 @@ def g(domain):
 
 def compute_lax_friedrich_flux(domain,dt):
 	center_fluxes=g(domain);
-	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.5*(dx/dt)*(domain-np.roll(domain,1,axis=1))
+	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.025*(dx/dt)*(domain-np.roll(domain,1,axis=1))
 
 def compute_lax_wendroff_flux(domain,dt):
 	center_flux=g(domain)
 	domain2=(0.5*dt/dx)*(np.roll(center_flux,1,axis=1)-center_flux)+0.5*(domain+np.roll(domain,1,axis=1))
 	return g(domain2)
 
+def superbee(r):
+	return np.maximum(0,np.maximum(np.minimum(2*r,1),np.minimum(r,2)))
+
 def compute_step(domain,dt):
 	lax_friedrich_flux=compute_lax_friedrich_flux(domain,dt)
-	domain+=(dt/dx)*(lax_friedrich_flux-np.roll(lax_friedrich_flux,-1,axis=1));
+	lax_wendroff_flux=compute_lax_wendroff_flux(domain,dt)
+	r_num=(np.roll(domain,1,axis=1)-np.roll(domain,2,axis=1))
+	r_den=(domain-np.roll(domain,1,axis=1));
+	r=np.where(np.abs(r_den)<0.0001,np.full_like(r_den,1.0),r_num/r_den)
+	psi=superbee(r)
+	flux=psi*lax_wendroff_flux+(1-psi)*lax_friedrich_flux
+	domain+=(dt/dx)*(flux-np.roll(flux,-1,axis=1));
 
 #Main plotting routine
 
