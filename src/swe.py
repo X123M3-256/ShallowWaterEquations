@@ -37,9 +37,13 @@ def square():
 def g(domain):
 	return np.stack([domain[1],(((domain[1]*domain[1])/domain[0])+0.5*9.81*domain[0]*domain[0])]);
 
+
 def compute_lax_friedrich_flux(domain,dt):
+	#According to Wikipedia, for the lax-friedrich method diff should be 1, but this seems to be far more diffusion than necessary.
+	#However, the optimal value of diff seems to vary with the grid spacing, so I think there is an error in my implementation.
+	diff=0.025
 	center_fluxes=g(domain);
-	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.025*(dx/dt)*(domain-np.roll(domain,1,axis=1))
+	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-diff*(dx/dt)*(domain-np.roll(domain,1,axis=1))
 
 def compute_lax_wendroff_flux(domain,dt):
 	center_flux=g(domain)
@@ -49,19 +53,25 @@ def compute_lax_wendroff_flux(domain,dt):
 def superbee(r):
 	return np.maximum(0,np.maximum(np.minimum(2*r,1),np.minimum(r,2)))
 
-def compute_step(domain,dt):
+def compute_limited_flux(domain,dt):
 	lax_friedrich_flux=compute_lax_friedrich_flux(domain,dt)
 	lax_wendroff_flux=compute_lax_wendroff_flux(domain,dt)
+	#This is the formula for r given in the notes, but it is not symmetric and it seems like it should be, since shocks may propogate
+	#in either direction.
 	r_num=(np.roll(domain,1,axis=1)-np.roll(domain,2,axis=1))
 	r_den=(domain-np.roll(domain,1,axis=1));
 	r=np.where(np.abs(r_den)<0.0001,np.full_like(r_den,1.0),r_num/r_den)
 	psi=superbee(r)
-	flux=psi*lax_wendroff_flux+(1-psi)*lax_friedrich_flux
+	return psi*lax_wendroff_flux+(1-psi)*lax_friedrich_flux
+
+
+def compute_step(domain,dt,flux_func):
+	flux=flux_func(domain,dt)
 	domain+=(dt/dx)*(flux-np.roll(flux,-1,axis=1));
 
 #Main plotting routine
 
-def plot_solution(initial_condition):
+def plot_solution(initial_condition,flux_func):
 
 	domain=np.stack([initial_condition,np.zeros(len(initial_condition))])
 
@@ -72,10 +82,15 @@ def plot_solution(initial_condition):
 
 	def animate(i):
 		for i in range(0,50):
-			compute_step(domain,dt)
+			compute_step(domain,dt,flux_func)
 		line.set_data(x,domain[0])
 		return line,
 	anim=animation.FuncAnimation(fig,animate,frames=100,interval=int(dt*50000),blit=True)	
 	plt.show()
 
-plot_solution(square())
+#This method works, but it's too diffusive and only first order
+plot_solution(square(),compute_lax_friedrich_flux)
+#This method works well with a higher grid resolution, but with 1000 points it introduces severe spurious oscillations
+plot_solution(square(),compute_lax_wendroff_flux)
+#This method just doesn't work at all. I've only included it because I'd like to know what's wrong with it
+plot_solution(square(),compute_limited_flux)
