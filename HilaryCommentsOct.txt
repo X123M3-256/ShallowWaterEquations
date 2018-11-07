@@ -1,0 +1,70 @@
+Good use of git with sensible commit messages
+
+
+Email from Edward:
+The main code is in the file src/swe.py on the branch flux_limiter (commit hash is 5930da6b275bfce5a9426f261e0581dd3b06c296). The code runs the same test case with three different methods. I am not sure the first one is implemented correctly, and the last one doesn't work at all but I'm not sure why. The lax-wendroff method seems to work, but only at very high grid resolutions.
+
+I am commenting on the code in branch flux_limiter.
+
+You really need to choose which equation you are planning to solve for this module. Your final report should describe numerical solutions to just one equation (or equation set for the case of shallow water). If your report describes solutions to more than one equation, I will only read the material about the first equation that you describe. And for your code, I will only comment on the code for solving one equation set.
+
+For this feedback, I will comment on the code in file swe.py.
+
+Terrific animation.
+
+Very well structured, concise and powerful code.
+
+Functions should always have docstrings describing what they do.
+
+Follow the guidelines at 
+https://www.dropbox.com/s/yba7pj7woyvv7hs/goodCode.pdf?dl=1
+
+Your code has global variables:
+dt=0.0001
+num_points=1000;
+dx=10.0/num_points;
+g=9.81;
+H=1
+
+x=np.linspace(0,10,num_points)
+
+Global variables should be avoided by putting this code into a main function and then calling it:
+
+def main():
+    dt=0.0001
+    num_points=1000;
+    dx=10.0/num_points;
+    g=9.81;
+    H=1
+
+    x=np.linspace(0,10,num_points)
+
+    anim = animation.FuncAnimation(fig, animate, frames=100,
+                                   interval=int(dt*50000), blit=True)
+    plt.show()
+
+    # This method works, but it's too diffusive and only first order
+    plot_solution(square(),compute_lax_friedrich_flux)
+    # This method works well with a higher grid resolution, but with 1000 points
+    # it introduces severe spurious oscillations
+    plot_solution(square(),compute_lax_wendroff_flux)
+    # This method just doesn't work at all. I've only included it because I'd
+    # like to know what's wrong with it
+    plot_solution(square(),compute_limited_flux)
+
+main()
+
+You will then need to make sure that all relevant variables are sent to all the functions. You might want to put the parameters into a dictionary or a class.
+
+You have a funciton called g and a variable called g. This looks problematic. Within the function g you use the value 9.81. This is not good style.
+
+I am afraid that I cannot work out from your code what equations you are solving or what the dependent variables are. I think that "domain" is one of the dependent variables. This is a most unusual name for a dependent variable. For your draft report please could you write a description of the variables and functions in your code and how these relate to the equations that you are solving. Also please could you describe the numerical methods that you are using in report form. Please do not worry if your draft report is more than two pages. I need this information to help to understand your code.
+
+At this stage, do not write new code or new numerical methods. Focus on analysing the methods that you have. 
+
+I think that all of the methods that you implement are co-located. Are you applying flux limiters soley to the non-linear advection term? How are you calculating other terms?
+
+Do you have any references or analysis to show that the methods that you are implementing should be stable? Do you expect any other numerical properties.
+
+Test your code with coarser resolution. You should be able to solve this case with much coarser resolution. With coarse resolution, your code runs more quickly and problems such as grid-scale osciallations are easier to see.
+
