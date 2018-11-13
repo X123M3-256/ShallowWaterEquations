@@ -4,12 +4,12 @@ from matplotlib import animation
 
 
 dt=0.0001
-num_points=10000;
+num_points=1000;
 dx=10.0/num_points;
 g=9.81;
 H=1
 
-x=np.linspace(0,10,num_points)
+x=np.linspace(-5,5,num_points)
 
 
 #Test cases
@@ -29,9 +29,9 @@ def slope():
 	return u
 
 def square():
-	u=np.full(num_points,0.05)
-	quart=num_points//4;
-	u[0:quart]=np.full(quart,1.5)
+	u=np.full(num_points,0.5)
+	quart=num_points//2;
+	u[0:quart]=np.full(quart,1.0)
 	return u
 
 def g(domain):
@@ -47,8 +47,28 @@ def compute_lax_wendroff_flux(domain,dt):
 	return g(domain2)
 
 def compute_step(domain,dt):
-	lax_friedrich_flux=compute_lax_friedrich_flux(domain,dt)
+	lax_friedrich_flux=compute_lax_wendroff_flux(domain,dt)
+	#lax_friedrich_flux=compute_lax_friedrich_flux(domain,dt)
 	domain+=(dt/dx)*(lax_friedrich_flux-np.roll(lax_friedrich_flux,-1,axis=1));
+
+
+def analytic(x,t):
+	x+=0.5
+	g=9.81;
+	S=2.957918120187525
+	u2=S-(g/(8.0*S))*(1.0+np.sqrt(1.0+(16.0*S**2)/g))
+	c2=np.sqrt(0.25*g*(np.sqrt(1.0+(16.0*S**2)/g)-1))
+	downstream_depth=0.5
+	bore_depth=0.25*(np.sqrt(1+(16*S**2)/g)-1)
+	if(x<0.5-t*np.sqrt(g)):
+		return 1
+	elif(x<(u2-c2)*t+0.5):
+		return (2.0*np.sqrt(g)-(2.0*x-1)/(2.0*t))**2/(9.0*g)
+	elif(x<S*t+0.5):
+		return bore_depth
+	else:
+		return downstream_depth
+
 
 #Main plotting routine
 
@@ -57,16 +77,21 @@ def plot_solution(initial_condition):
 	domain=np.stack([initial_condition,np.zeros(len(initial_condition))])
 
 	fig=plt.figure()
-	ax=plt.axes(xlim=(0,10),ylim=(0,2))
+	ax=plt.axes(xlim=(-1,1),ylim=(-1,1))
 	ax.set_aspect("equal")
-	line,=ax.plot([],[],lw=2)
+	line,=ax.plot([],[],lw=1)
+	line2,=ax.plot([],[],lw=1)
+	
+	t=[0];
 
 	def animate(i):
-		for i in range(0,50):
+		for i in range(0,25):
 			compute_step(domain,dt)
-		line.set_data(x,domain[0])
-		return line,
+		t[0]+=25*dt;
+		exact=np.array(list(map(lambda xn:analytic(xn,t[0]),x)))
+		line.set_data(x,exact)
+		line2.set_data(x,domain[0])
+		return line,line2
 	anim=animation.FuncAnimation(fig,animate,frames=100,interval=int(dt*50000),blit=True)	
 	plt.show()
-
 plot_solution(square())
