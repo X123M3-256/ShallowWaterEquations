@@ -7,7 +7,6 @@ dt=0.0001
 num_points=1000;
 dx=10.0/num_points;
 g=9.81;
-H=1
 
 x=np.linspace(-5,5,num_points)
 
@@ -34,27 +33,26 @@ def square():
 	u[0:quart]=np.full(quart,1.0)
 	return u
 
-def g(domain):
-	return np.stack([domain[1],(((domain[1]*domain[1])/domain[0])+0.5*9.81*domain[0]*domain[0])]);
+def f(u):
+	return np.stack([u[1],(((u[1]*u[1])/u[0])+0.5*9.81*u[0]*u[0])]);
 
-def compute_lax_friedrich_flux(domain,dt):
-	center_fluxes=g(domain);
-	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.5*(dx/dt)*(domain-np.roll(domain,1,axis=1))
+def compute_lax_friedrich_flux(u,dt):
+	center_fluxes=f(u);
+	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.5*(dx/dt)*(u-np.roll(u,1,axis=1))
 
-def compute_lax_wendroff_flux(domain,dt):
-	center_flux=g(domain)
-	domain2=(0.5*dt/dx)*(np.roll(center_flux,1,axis=1)-center_flux)+0.5*(domain+np.roll(domain,1,axis=1))
-	return g(domain2)
+def compute_lax_wendroff_flux(u,dt):
+	center_flux=f(u)
+	u2=(0.5*dt/dx)*(np.roll(center_flux,1,axis=1)-center_flux)+0.5*(u+np.roll(u,1,axis=1))
+	return f(u2)
 
-def compute_step(domain,dt):
-	lax_friedrich_flux=compute_lax_wendroff_flux(domain,dt)
-	#lax_friedrich_flux=compute_lax_friedrich_flux(domain,dt)
-	domain+=(dt/dx)*(lax_friedrich_flux-np.roll(lax_friedrich_flux,-1,axis=1));
+def compute_step(u,dt):
+	lax_friedrich_flux=compute_lax_wendroff_flux(u,dt)
+	#lax_friedrich_flux=compute_lax_friedrich_flux(u,dt)
+	u+=(dt/dx)*(lax_friedrich_flux-np.roll(lax_friedrich_flux,-1,axis=1));
 
 
 def analytic(x,t):
 	x+=0.5
-	g=9.81;
 	S=2.957918120187525
 	u2=S-(g/(8.0*S))*(1.0+np.sqrt(1.0+(16.0*S**2)/g))
 	c2=np.sqrt(0.25*g*(np.sqrt(1.0+(16.0*S**2)/g)-1))
@@ -74,7 +72,7 @@ def analytic(x,t):
 
 def plot_solution(initial_condition):
 
-	domain=np.stack([initial_condition,np.zeros(len(initial_condition))])
+	u=np.stack([initial_condition,np.zeros(len(initial_condition))])
 
 	fig=plt.figure()
 	ax=plt.axes(xlim=(-1,1),ylim=(-1,1))
@@ -86,12 +84,14 @@ def plot_solution(initial_condition):
 
 	def animate(i):
 		for i in range(0,25):
-			compute_step(domain,dt)
+			compute_step(u,dt)
 		t[0]+=25*dt;
 		exact=np.array(list(map(lambda xn:analytic(xn,t[0]),x)))
 		line.set_data(x,exact)
-		line2.set_data(x,domain[0])
+		line2.set_data(x,u[0])
 		return line,line2
 	anim=animation.FuncAnimation(fig,animate,frames=100,interval=int(dt*50000),blit=True)	
 	plt.show()
+
+
 plot_solution(square())
