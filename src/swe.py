@@ -2,52 +2,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
-
-dt=0.0001
-num_points=1000;
-dx=10.0/num_points;
-g=9.81;
-
-x=np.linspace(-5,5,num_points)
+g=9.81
 
 
-#Test cases
 
-def hump():
-	u=np.full(num_points,0.5)
-	quart=num_points//4;
-	u[0:quart]+=0.125*(1-np.cos(0.8*np.pi*x[0:quart]))
-	return u
-
-def slope():
-	u=np.full(num_points,1.0)
-	u[0]=1.0
-	quart=num_points//4;
-	u[1:quart]+=x[1:quart]/2.5
-	u[quart+1:2*quart]+=(5-x[quart+1:2*quart])/2.5
-	return u
-
-def square():
-	u=np.full(num_points,0.5)
-	quart=num_points//2;
-	u[0:quart]=np.full(quart,1.0)
-	return u
+def dam_break(x):
+	return np.stack([np.where(x<=0,1.0,0.5),np.zeros_like(x)])
 
 def f(u):
 	return np.stack([u[1],(((u[1]*u[1])/u[0])+0.5*9.81*u[0]*u[0])]);
 
-def compute_lax_friedrich_flux(u,dt):
+def compute_lax_friedrich_flux(u,dx,dt):
 	center_fluxes=f(u);
 	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.5*(dx/dt)*(u-np.roll(u,1,axis=1))
 
-def compute_lax_wendroff_flux(u,dt):
+def compute_lax_wendroff_flux(u,dx,dt):
 	center_flux=f(u)
 	u2=(0.5*dt/dx)*(np.roll(center_flux,1,axis=1)-center_flux)+0.5*(u+np.roll(u,1,axis=1))
 	return f(u2)
 
-def compute_step(u,dt):
-	lax_friedrich_flux=compute_lax_wendroff_flux(u,dt)
-	#lax_friedrich_flux=compute_lax_friedrich_flux(u,dt)
+def compute_step(u,dx,dt):
+	lax_friedrich_flux=compute_lax_wendroff_flux(u,dx,dt)
+	#lax_friedrich_flux=compute_lax_friedrich_flux(u,dx,dt)
 	u+=(dt/dx)*(lax_friedrich_flux-np.roll(lax_friedrich_flux,-1,axis=1));
 
 
@@ -68,11 +44,24 @@ def analytic(x,t):
 		return downstream_depth
 
 
+def solve(domain,initial_condition,num_cells,dt):
+	(start,end)=domain
+	#Compute cell width
+	dx=(end-start)/num_cells
+	#Compute coordinates of cell centers
+	x=np.linspace(start+dx/2,end-dx/2,num_cells)
+	#Initialize solution with initial condition	
+	t=0
+	u=initial_condition(x)
+	#Generate sequence of timesteps
+	while(True):
+		yield (t,x,u)
+		compute_step(u,dx,dt);
+		t+=dt			
+
+
 #Main plotting routine
-
-def plot_solution(initial_condition):
-
-	u=np.stack([initial_condition,np.zeros(len(initial_condition))])
+def plot_solution(solution):
 
 	fig=plt.figure()
 	ax=plt.axes(xlim=(-1,1),ylim=(-1,1))
@@ -80,18 +69,15 @@ def plot_solution(initial_condition):
 	line,=ax.plot([],[],lw=1)
 	line2,=ax.plot([],[],lw=1)
 	
-	t=[0];
-
 	def animate(i):
-		for i in range(0,25):
-			compute_step(u,dt)
-		t[0]+=25*dt;
-		exact=np.array(list(map(lambda xn:analytic(xn,t[0]),x)))
+		for i in range(50):
+			(t,x,u)=next(solution)
+		exact=np.array(list(map(lambda xn:analytic(xn,t),x)))
 		line.set_data(x,exact)
 		line2.set_data(x,u[0])
 		return line,line2
-	anim=animation.FuncAnimation(fig,animate,frames=100,interval=int(dt*50000),blit=True)	
+	anim=animation.FuncAnimation(fig,animate,frames=100,interval=30,blit=True)	
 	plt.show()
 
 
-plot_solution(square())
+plot_solution(solve((-5,5),dam_break,5000,0.0001))
