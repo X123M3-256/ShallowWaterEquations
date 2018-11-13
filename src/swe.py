@@ -9,24 +9,6 @@ g=9.81
 def dam_break(x):
 	return np.stack([np.where(x<=0,1.0,0.5),np.zeros_like(x)])
 
-def f(u):
-	return np.stack([u[1],(((u[1]*u[1])/u[0])+0.5*9.81*u[0]*u[0])]);
-
-def compute_lax_friedrich_flux(u,dx,dt):
-	center_fluxes=f(u);
-	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.5*(dx/dt)*(u-np.roll(u,1,axis=1))
-
-def compute_lax_wendroff_flux(u,dx,dt):
-	center_flux=f(u)
-	u2=(0.5*dt/dx)*(np.roll(center_flux,1,axis=1)-center_flux)+0.5*(u+np.roll(u,1,axis=1))
-	return f(u2)
-
-def compute_step(u,dx,dt):
-	lax_friedrich_flux=compute_lax_wendroff_flux(u,dx,dt)
-	#lax_friedrich_flux=compute_lax_friedrich_flux(u,dx,dt)
-	u+=(dt/dx)*(lax_friedrich_flux-np.roll(lax_friedrich_flux,-1,axis=1));
-
-
 def analytic(x,t):
 	x+=0.5
 	S=2.957918120187525
@@ -43,8 +25,27 @@ def analytic(x,t):
 	else:
 		return downstream_depth
 
+def f(u):
+	return np.stack([u[1],(((u[1]*u[1])/u[0])+0.5*9.81*u[0]*u[0])]);
 
-def solve(domain,initial_condition,num_cells,dt):
+def lax_friedrich_flux(u,dx,dt):
+	center_fluxes=f(u);
+	return 0.5*(np.roll(center_fluxes,1,axis=1)+center_fluxes)-0.5*(dx/dt)*(u-np.roll(u,1,axis=1))
+
+def lax_wendroff_flux(u,dx,dt):
+	center_flux=f(u)
+	u2=(0.5*dt/dx)*(np.roll(center_flux,1,axis=1)-center_flux)+0.5*(u+np.roll(u,1,axis=1))
+	return f(u2)
+
+def finite_volume(flux_func):
+	def compute_step(u,dx,dt):
+		flux=flux_func(u,dx,dt)
+		u+=(dt/dx)*(flux-np.roll(flux,-1,axis=1));
+	return compute_step
+
+
+
+def solve(domain,initial_condition,num_cells,dt,solver):
 	(start,end)=domain
 	#Compute cell width
 	dx=(end-start)/num_cells
@@ -56,7 +57,7 @@ def solve(domain,initial_condition,num_cells,dt):
 	#Generate sequence of timesteps
 	while(True):
 		yield (t,x,u)
-		compute_step(u,dx,dt);
+		solver(u,dx,dt);
 		t+=dt			
 
 
@@ -80,4 +81,5 @@ def plot_solution(solution):
 	plt.show()
 
 
-plot_solution(solve((-5,5),dam_break,5000,0.0001))
+plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_friedrich_flux)))
+plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_wendroff_flux)))
