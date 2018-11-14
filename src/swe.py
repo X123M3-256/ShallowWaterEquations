@@ -25,6 +25,40 @@ def analytic(x,t):
 	else:
 		return downstream_depth
 
+def l2_norm(x,u,domain):
+	(start,end)=domain
+	dx=x[1]-x[0]
+	u=np.where(np.logical_and(x>start,x<end),u,0.0)
+	return np.sqrt(sum(dx*(u*u)))
+
+
+def do_convergence_test(solvers):
+	print("Running convergence test")
+	time=0.2
+	domain=(-5,5)
+	
+	f=open("convergence.txt","w")
+	for num_cells in [2000,4000,8000,16000,32000,64000]:
+		
+		dx=(domain[1]-domain[0])/num_cells;
+		num_timesteps=int(4.0*time/dx)
+		dt=time/num_timesteps
+		
+		f.write("%f"%dx);
+		for solver in solvers:
+			solution=solve(domain,dam_break,num_cells,dt,solver);
+
+			x=[]
+			u=[]
+			for i in range(num_timesteps+1):
+				(t,x,u)=next(solution)
+			exact=np.array(list(map(lambda xn:analytic(xn,time),x)))
+			f.write(" %f"%l2_norm(x,u[0]-exact,(-1,1)))
+		f.write("\n");
+		print("Computed errors for dx=%f"%dx)
+	f.close();
+	print("Output written to convergence.txt")
+
 def f(u):
 	return np.stack([u[1],(((u[1]*u[1])/u[0])+0.5*9.81*u[0]*u[0])]);
 
@@ -80,6 +114,6 @@ def plot_solution(solution):
 	anim=animation.FuncAnimation(fig,animate,frames=100,interval=30,blit=True)	
 	plt.show()
 
-
 plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_friedrich_flux)))
 plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_wendroff_flux)))
+do_convergence_test([finite_volume(lax_friedrich_flux),finite_volume(lax_wendroff_flux)])
