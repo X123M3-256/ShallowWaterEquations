@@ -36,12 +36,13 @@ def do_convergence_test(solvers):
 	print("Running convergence test")
 	time=0.2
 	domain=(-5,5)
+	courant=4.0;
 	
 	f=open("convergence.txt","w")
-	for num_cells in [2000,4000,8000,16000,32000,64000]:
+	for num_cells in [2000,3000,4000,6000,8000,12000,16000,24000,32000]:
 		
 		dx=(domain[1]-domain[0])/num_cells;
-		num_timesteps=int(4.0*time/dx)
+		num_timesteps=int(courant*num_cells*time/(domain[1]-domain[0]))
 		dt=time/num_timesteps
 		
 		f.write("%f"%dx);
@@ -114,6 +115,6 @@ def plot_solution(solution):
 	anim=animation.FuncAnimation(fig,animate,frames=100,interval=30,blit=True)	
 	plt.show()
 
-plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_friedrich_flux)))
-plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_wendroff_flux)))
+#plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_friedrich_flux)))
+#plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_wendroff_flux)))
 do_convergence_test([finite_volume(lax_friedrich_flux),finite_volume(lax_wendroff_flux)])
