@@ -42,11 +42,11 @@ def l2_norm(x,u,domain):
 def do_convergence_test(solvers):
 	print("Running convergence test")
 	time=0.2
-	domain=(-5,5)
+	domain=(-2,2)
 	courant=4.0;
 	
 	f=open("convergence.txt","w")
-	for num_cells in [2000,3000,4000,6000,8000,12000,16000,24000,32000]:
+	for num_cells in [500,750,1000,1500,2000,3000,4000,6000,8000,12000]:
 		
 		dx=(domain[1]-domain[0])/num_cells;
 		num_timesteps=int(courant*num_cells*time/(domain[1]-domain[0]))
@@ -69,11 +69,11 @@ def do_convergence_test(solvers):
 
 def do_conservation_test(solvers):
 	print("Running conservation test")
-	domain=(-5,5)
-	num_cells=2000
-	num_timesteps=5000
+	domain=(-1,1)
+	num_cells=1000
+	num_timesteps=2000
 	dx=(domain[1]-domain[0])/num_cells;
-	dt=0.0002
+	dt=0.0005
 	
 	f=open("conservation.txt","w")
 	for solver in solvers:
@@ -87,7 +87,6 @@ def do_conservation_test(solvers):
 		f.write("\n");
 	f.close();
 	print("Output written to conservation.txt")
-
 
 def f(u):
 	return np.stack([u[1],(((u[1]*u[1])/u[0])+0.5*9.81*u[0]*u[0])]);
@@ -135,7 +134,7 @@ def plot_solution(solution):
 	line2,=ax.plot([],[],lw=1)
 	
 	def animate(i):
-		for i in range(10):
+		for i in range(50):
 			(t,x,u)=next(solution)
 		exact=np.array(list(map(lambda xn:analytic(xn,t),x)))
 		line.set_data(x,exact)
@@ -145,7 +144,7 @@ def plot_solution(solution):
 	plt.show()
 
 #plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_friedrich_flux)))
-#plot_solution(solve((-5,5),hump,5000,0.0001,finite_volume(lax_wendroff_flux)))
+#plot_solution(solve((-1,1),hump,1000,0.0005,finite_volume(lax_wendroff_flux)))
 solvers=[finite_volume(lax_friedrich_flux),finite_volume(lax_wendroff_flux)]
 do_convergence_test(solvers)
 do_conservation_test(solvers)
