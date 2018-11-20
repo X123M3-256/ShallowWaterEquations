@@ -1,13 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
-
+import sys
 g=9.81
 
 
 
 def dam_break(x):
 	return np.stack([np.where(x<=0,1.0,0.5),np.zeros_like(x)])
+
+def hump(x):
+	return np.stack([np.where(np.abs(x)<=0.5,0.5+0.1*(1+np.cos(2.0*np.pi*x)),0.5),np.zeros_like(x)])
 
 def analytic(x,t):
 	x+=0.5
@@ -25,11 +28,15 @@ def analytic(x,t):
 	else:
 		return downstream_depth
 
+def integrate(u,dx):
+	return sum(dx*u)
+	
+
 def l2_norm(x,u,domain):
 	(start,end)=domain
 	dx=x[1]-x[0]
 	u=np.where(np.logical_and(x>start,x<end),u,0.0)
-	return np.sqrt(sum(dx*(u*u)))
+	return np.sqrt(integrate(u*u,dx))
 
 
 def do_convergence_test(solvers):
@@ -59,6 +66,28 @@ def do_convergence_test(solvers):
 		print("Computed errors for dx=%f"%dx)
 	f.close();
 	print("Output written to convergence.txt")
+
+def do_conservation_test(solvers):
+	print("Running conservation test")
+	domain=(-5,5)
+	num_cells=2000
+	num_timesteps=5000
+	dx=(domain[1]-domain[0])/num_cells;
+	dt=0.0002
+	
+	f=open("conservation.txt","w")
+	for solver in solvers:
+		solution=solve(domain,hump,num_cells,dt,solver);
+
+		x=[]
+		u=[]
+		for i in range(num_timesteps+1):
+			(t,x,u)=next(solution)
+			f.write("%f %f %f %f\n"%(t,integrate(u[0],dx),integrate(u[1],dx),integrate(0.5*u[1]*u[1]/u[0]+0.5*g*u[0]*u[0],dx)))
+		f.write("\n");
+	f.close();
+	print("Output written to conservation.txt")
+
 
 def f(u):
 	return np.stack([u[1],(((u[1]*u[1])/u[0])+0.5*9.81*u[0]*u[0])]);
@@ -106,7 +135,7 @@ def plot_solution(solution):
 	line2,=ax.plot([],[],lw=1)
 	
 	def animate(i):
-		for i in range(50):
+		for i in range(10):
 			(t,x,u)=next(solution)
 		exact=np.array(list(map(lambda xn:analytic(xn,t),x)))
 		line.set_data(x,exact)
@@ -116,5 +145,7 @@ def plot_solution(solution):
 	plt.show()
 
 #plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_friedrich_flux)))
-#plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_wendroff_flux)))
-do_convergence_test([finite_volume(lax_friedrich_flux),finite_volume(lax_wendroff_flux)])
+#plot_solution(solve((-5,5),hump,5000,0.0001,finite_volume(lax_wendroff_flux)))
+solvers=[finite_volume(lax_friedrich_flux),finite_volume(lax_wendroff_flux)]
+do_convergence_test(solvers)
+do_conservation_test(solvers)
