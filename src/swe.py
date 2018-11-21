@@ -67,6 +67,49 @@ def do_convergence_test(solvers):
 	f.close();
 	print("Output written to convergence.txt")
 
+def do_smooth_convergence_test(solvers):
+	print("Running smooth convergence test")
+
+	#Compute high resolution solution
+	time=0.05
+	domain=(-1,1)
+	courant=16.0
+	high_res_num_cells=21870*3
+	high_res_num_timesteps=int(courant*high_res_num_cells*time/(domain[1]-domain[0]))
+	high_res_dt=time/high_res_num_timesteps
+	high_res_solution=solve(domain,hump,high_res_num_cells,high_res_dt,finite_volume(lax_wendroff_flux));
+	high_res_u=[]
+	for i in range(high_res_num_timesteps+1):
+		(t,x,high_res_u)=next(high_res_solution)
+	print("Computed high resolution solution (%d points)"%(high_res_num_cells))
+
+	downsampled_high_res_h=high_res_u[0]
+	downsampled_high_res_h=downsampled_high_res_h[1::3]
+
+	f=open("convergence_smooth.txt","w")
+	for steps in [9,27,27*3,27*9,27*27,27*27*3]:#,27*3]:
+		num_cells=high_res_num_cells//steps	
+		dx=(domain[1]-domain[0])/num_cells;
+		num_timesteps=int(courant*num_cells*time/(domain[1]-domain[0]))
+		dt=time/num_timesteps
+		#Downsample high res solution	
+		downsampled_high_res_h=downsampled_high_res_h[1::3]
+
+		f.write("%f"%dx);
+		for solver in solvers:
+			solution=solve(domain,hump,num_cells,dt,solver);
+
+			x=[]
+			u=[]
+			for i in range(num_timesteps+1):
+				(t,x,u)=next(solution)
+			f.write(" %f"%l2_norm(x,u[0]-downsampled_high_res_h,(-1,1)))
+		f.write("\n");
+		print("Computed errors for dx=%f"%dx)
+	f.close();
+	print("Output written to convergence_smooth.txt")
+
+
 def do_conservation_test(solvers):
 	print("Running conservation test")
 	domain=(-1,1)
@@ -182,4 +225,5 @@ def plot_solution(solution):
 
 solvers=[finite_volume(kurganov_petrova_flux),finite_volume(lax_wendroff_flux),kurganov_petrova]
 do_convergence_test(solvers)
+do_smooth_convergence_test(solvers)
 do_conservation_test(solvers)
