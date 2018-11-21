@@ -100,6 +100,34 @@ def lax_wendroff_flux(u,dx,dt):
 	u2=(0.5*dt/dx)*(np.roll(center_flux,1,axis=1)-center_flux)+0.5*(u+np.roll(u,1,axis=1))
 	return f(u2)
 
+def minmod(u,v):
+	return np.where(u*v<0,0.0,np.where(np.abs(u)<np.abs(v),u,v))
+
+
+def compute_velocity(u):
+	return u[1]/u[0]
+
+def compute_wave_speed(h):
+	return np.sqrt(g*h) 
+
+def kurganov_petrova_flux(u,dx,dt):
+	#Compute numerical derivatives using slope limiter
+	left_slope=(u-np.roll(u,1,axis=1))/dx
+	right_slope=(np.roll(u,-1,axis=1)-u)/dx
+	u_x=np.stack([minmod(left_slope[0],right_slope[0]),minmod(left_slope[1],right_slope[1])])
+	#Compute left and right values of u
+	u_right=u+0.5*dx*u_x
+	u_left=np.roll(u,1,axis=1)-0.5*dx*np.roll(u_x,1,axis=1)
+	#Compute velocities
+	v_left=compute_velocity(u_left)
+	v_right=compute_velocity(u_right)	
+	#Compute local propogation speeds
+	c_left=compute_wave_speed(u_left[0]);
+	c_right=compute_wave_speed(u_right[0]);
+	a_left=np.minimum(np.minimum(u_right-c_right,u_left-c_left),0);
+	a_right=np.maximum(np.maximum(u_right+c_right,u_left+c_left),0);
+	return ((a_right*f(u_left)-a_left*f(u_right))+a_left*a_right*(u_right-u_left))/(a_right-a_left)
+
 def finite_volume(flux_func):
 	def compute_step(u,dx,dt):
 		flux=flux_func(u,dx,dt)
@@ -143,8 +171,8 @@ def plot_solution(solution):
 	anim=animation.FuncAnimation(fig,animate,frames=100,interval=30,blit=True)	
 	plt.show()
 
-#plot_solution(solve((-5,5),dam_break,5000,0.0001,finite_volume(lax_friedrich_flux)))
+#plot_solution(solve((-1,1),dam_break,1000,0.0001,finite_volume(kurganov_petrova_flux)))
 #plot_solution(solve((-1,1),hump,1000,0.0005,finite_volume(lax_wendroff_flux)))
-solvers=[finite_volume(lax_friedrich_flux),finite_volume(lax_wendroff_flux)]
+solvers=[finite_volume(lax_friedrich_flux),finite_volume(lax_wendroff_flux),finite_volume(kurganov_petrova_flux)]
 do_convergence_test(solvers)
 do_conservation_test(solvers)
