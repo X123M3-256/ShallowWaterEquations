@@ -2,11 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from solvers import solve
+from tests import dam_break
 from analytic import analytic
 
-#Main plotting routine
-def plot_solution(solution):
-
+#Plot numerical against analytic solution for dam break problem
+def plot_dam_break(num_cells,dt,solver):
+	solution=solve((-5,5),dam_break,num_cells,dt,solver)
 	fig=plt.figure()
 	ax=plt.axes(xlim=(-1,1),ylim=(0,1))
 	ax.set_aspect("equal")
