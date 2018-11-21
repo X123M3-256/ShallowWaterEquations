@@ -128,6 +128,15 @@ def kurganov_petrova_flux(u,dx,dt):
 	a_right=np.maximum(np.maximum(u_right+c_right,u_left+c_left),0);
 	return ((a_right*f(u_left)-a_left*f(u_right))+a_left*a_right*(u_right-u_left))/(a_right-a_left)
 
+def kurganov_petrova_derivative(u,dx,dt):
+	flux=kurganov_petrova_flux(u,dx,dt)
+	return (flux-np.roll(flux,-1,axis=1))/dx;
+
+def kurganov_petrova(u,dx,dt):
+	u1=u+dt*kurganov_petrova_derivative(u,dx,dt);
+	u2=0.75*u+0.25*(u1+dt*kurganov_petrova_derivative(u1,dx,dt));
+	u[:]=u/3.0+(2.0/3.0)*(u2+dt*kurganov_petrova_derivative(u2,dx,dt))
+
 def finite_volume(flux_func):
 	def compute_step(u,dx,dt):
 		flux=flux_func(u,dx,dt)
@@ -171,8 +180,6 @@ def plot_solution(solution):
 	anim=animation.FuncAnimation(fig,animate,frames=100,interval=30,blit=True)	
 	plt.show()
 
-#plot_solution(solve((-1,1),dam_break,1000,0.0001,finite_volume(kurganov_petrova_flux)))
-#plot_solution(solve((-1,1),hump,1000,0.0005,finite_volume(lax_wendroff_flux)))
-solvers=[finite_volume(lax_friedrich_flux),finite_volume(lax_wendroff_flux),finite_volume(kurganov_petrova_flux)]
+solvers=[finite_volume(kurganov_petrova_flux),finite_volume(lax_wendroff_flux),kurganov_petrova]
 do_convergence_test(solvers)
 do_conservation_test(solvers)
