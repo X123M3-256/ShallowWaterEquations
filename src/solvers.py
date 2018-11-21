@@ -18,7 +18,6 @@ def lax_wendroff_flux(u,dx,dt):
 def minmod(u,v):
 	return np.where(u*v<0,0.0,np.where(np.abs(u)<np.abs(v),u,v))
 
-
 def compute_velocity(u):
 	return u[1]/u[0]
 
@@ -47,19 +46,25 @@ def kurganov_petrova_derivative(u,dx,dt):
 	flux=kurganov_petrova_flux(u,dx,dt)
 	return (flux-np.roll(flux,-1,axis=1))/dx;
 
-def kurganov_petrova(u,dx,dt):
-	u1=u+dt*kurganov_petrova_derivative(u,dx,dt);
-	u2=0.75*u+0.25*(u1+dt*kurganov_petrova_derivative(u1,dx,dt));
-	u[:]=u/3.0+(2.0/3.0)*(u2+dt*kurganov_petrova_derivative(u2,dx,dt))
+def ssp_rk3(flux_func):
+	def euler_step(u,dx,dt):
+		flux=flux_func(u,dx,dt)
+		return u+(dt/dx)*(flux-np.roll(flux,-1,axis=1))
+	def compute_step(u,dx,dt):
+		u1=euler_step(u,dx,dt);
+		u2=0.75*u+0.25*euler_step(u1,dx,dt);
+		u[:]=u/3.0+(2.0/3.0)*euler_step(u2,dx,dt)
+	return compute_step
 
-def finite_volume(flux_func):
+def euler(flux_func):
 	def compute_step(u,dx,dt):
 		flux=flux_func(u,dx,dt)
 		u+=(dt/dx)*(flux-np.roll(flux,-1,axis=1));
 	return compute_step
 
-lax_friedrich=finite_volume(lax_friedrich_flux)
-lax_wendroff=finite_volume(lax_wendroff_flux)
+lax_friedrich=euler(lax_friedrich_flux)
+lax_wendroff=euler(lax_wendroff_flux)
+kurganov_petrova=ssp_rk3(kurganov_petrova_flux)
 
 def solve(domain,initial_condition,num_cells,dt,solver):
 	(start,end)=domain
