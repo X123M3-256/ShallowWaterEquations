@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from solvers import solve
-from tests import analytic
+from analytic import analytic
 
 #Main plotting routine
 def plot_solution(solution):
@@ -16,8 +16,7 @@ def plot_solution(solution):
 	def animate(i):
 		for i in range(50):
 			(t,x,u)=next(solution)
-		exact=np.array(list(map(lambda xn:analytic(xn,t),x)))
-		line.set_data(x,exact)
+		line.set_data(x,analytic(x,t))
 		line2.set_data(x,u[0])
 		return line,line2
 	anim=animation.FuncAnimation(fig,animate,frames=100,interval=30,blit=True)	

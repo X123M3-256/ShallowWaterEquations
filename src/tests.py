@@ -1,7 +1,6 @@
 import numpy as np
-from solvers import lax_wendroff,solve
-
-g=9.81
+from solvers import g,lax_wendroff,solve
+from analytic import analytic
 
 
 def dam_break(x):
@@ -10,21 +9,6 @@ def dam_break(x):
 def hump(x):
 	return np.stack([np.where(np.abs(x)<=0.5,0.5+0.1*(1+np.cos(2.0*np.pi*x)),0.5),np.zeros_like(x)])
 
-def analytic(x,t):
-	x+=0.5
-	S=2.957918120187525
-	u2=S-(g/(8.0*S))*(1.0+np.sqrt(1.0+(16.0*S**2)/g))
-	c2=np.sqrt(0.25*g*(np.sqrt(1.0+(16.0*S**2)/g)-1))
-	downstream_depth=0.5
-	bore_depth=0.25*(np.sqrt(1+(16*S**2)/g)-1)
-	if(x<0.5-t*np.sqrt(g)):
-		return 1
-	elif(x<(u2-c2)*t+0.5):
-		return (2.0*np.sqrt(g)-(2.0*x-1)/(2.0*t))**2/(9.0*g)
-	elif(x<S*t+0.5):
-		return bore_depth
-	else:
-		return downstream_depth
 
 def integrate(u,dx):
 	return sum(dx*u)
@@ -58,8 +42,7 @@ def do_convergence_test(solvers):
 			u=[]
 			for i in range(num_timesteps+1):
 				(t,x,u)=next(solution)
-			exact=np.array(list(map(lambda xn:analytic(xn,time),x)))
-			f.write(" %f"%l2_norm(x,u[0]-exact,(-1,1)))
+			f.write(" %f"%l2_norm(x,u[0]-analytic(x,time),(-1,1)))
 		f.write("\n");
 		print("Computed errors for dx=%f"%dx)
 	f.close();
