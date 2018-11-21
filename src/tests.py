@@ -29,6 +29,45 @@ def l2_norm(u,dx):
 	return np.sqrt(integrate(u*u,dx))
 
 """
+Compute dam break solution at time t=0.2
+
+This function computes the solution of the dam break problem at time t=0.2 using each
+numerical scheme, so that they can be plotted. The results are written to the file dam_break.txt
+"""
+
+def do_dam_break_computation(solvers):
+	print("Computing solutions to dam break problem")
+	domain=(-2,2)
+	num_cells=1000
+	start=num_cells//4
+	end=num_cells-start
+	num_timesteps=400
+	dx=(domain[1]-domain[0])/num_cells;
+	dt=0.0005
+	
+	f=open("dam_break.txt","w")
+
+	x=np.linspace(domain[0]+0.5*dx,domain[1]-0.5*dx,num_cells)
+	exact=analytic(x,num_timesteps*dt)
+	solutions=[]
+	for solver in solvers:
+		solution=solve(domain,dam_break,num_cells,dt,solver);
+		for i in range(num_timesteps+1):
+			(t,x,u)=next(solution)
+		solutions.append(u[0])
+
+	for i in range(start,end):
+		f.write("%f %f "%(x[i],exact[i]))
+		for solution in solutions:
+			f.write(" %f"%solution[i])
+		f.write("\n");
+	f.close();
+	print("Output written to dam_break.txt\n")
+
+
+
+
+"""
 Test the convergence rate of a list of solvers on the dam break case
 
 This function computes the numerical solution with each solver for a number of different
@@ -52,15 +91,13 @@ def do_convergence_test(solvers):
 		for solver in solvers:
 			solution=solve(domain,dam_break,num_cells,dt,solver);
 
-			x=[]
-			u=[]
 			for i in range(num_timesteps+1):
 				(t,x,u)=next(solution)
 			f.write(" %f"%l2_norm(np.where(np.logical_and(x>-1,x<1),u[0]-analytic(x,time),0),dx))
 		f.write("\n");
 		print("Computed errors for dx=%f"%dx)
 	f.close();
-	print("Output written to convergence.txt")
+	print("Output written to convergence.txt\n")
 
 """
 Test the convergence rate of a list of solvers on the smooth initial condition
@@ -101,15 +138,13 @@ def do_smooth_convergence_test(solvers):
 		for solver in solvers:
 			solution=solve(domain,hump,num_cells,dt,solver);
 
-			x=[]
-			u=[]
 			for i in range(num_timesteps+1):
 				(t,x,u)=next(solution)
 			f.write(" %f"%l2_norm(u[0]-downsampled_high_res_h,dx))
 		f.write("\n");
 		print("Computed errors for dx=%f"%dx)
 	f.close();
-	print("Output written to convergence_smooth.txt")
+	print("Output written to convergence_smooth.txt\n")
 
 """
 Test how well the numerical solvers preserve conserved quantities
@@ -130,14 +165,12 @@ def do_conservation_test(solvers):
 	for solver in solvers:
 		solution=solve(domain,hump,num_cells,dt,solver);
 
-		x=[]
-		u=[]
 		for i in range(num_timesteps+1):
 			(t,x,u)=next(solution)
 			f.write("%f %f %f %f\n"%(t,integrate(u[0],dx),integrate(u[1],dx),integrate(0.5*u[1]*u[1]/u[0]+0.5*g*u[0]*u[0],dx)))
 		f.write("\n");
 	f.close();
-	print("Output written to conservation.txt")
+	print("Output written to conservation.txt\n")
 
 """
 Compute the total variation of u
@@ -175,6 +208,5 @@ def do_total_variation_test(solvers):
 			f.write(" %f"%(total_variation(u[0][start:end])))
 		f.write("\n");
 	f.close();
-	print("Output written to total_variation.txt")
-
+	print("Output written to total_variation.txt\n")
 
