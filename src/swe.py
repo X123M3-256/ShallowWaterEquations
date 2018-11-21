@@ -131,6 +131,33 @@ def do_conservation_test(solvers):
 	f.close();
 	print("Output written to conservation.txt")
 
+def total_variation(u):
+	return sum(np.abs(u[1:]-u[0:-1]))
+
+def do_total_variation_test(solvers):
+	print("Running total variation test")
+	domain=(-2,2)
+	num_cells=1000
+	start=num_cells//4
+	end=num_cells-start
+	num_timesteps=200
+	dx=(domain[1]-domain[0])/num_cells;
+	dt=0.0005
+	
+	f=open("total_variation.txt","w")
+	solutions=[]
+	for solver in solvers:
+		solutions.append(solve(domain,dam_break,num_cells,dt,solver));
+
+	for t in np.linspace(0,dt*num_timesteps,num_timesteps+1):
+		f.write("%f"%t)
+		for solution in solutions:
+			(t2,x,u)=next(solution)
+			f.write(" %f"%(total_variation(u[0][start:end])))
+		f.write("\n");
+	f.close();
+	print("Output written to total_variation.txt")
+
 def f(u):
 	return np.stack([u[1],(((u[1]*u[1])/u[0])+0.5*9.81*u[0]*u[0])]);
 
@@ -214,7 +241,7 @@ def plot_solution(solution):
 	line2,=ax.plot([],[],lw=1)
 	
 	def animate(i):
-		for i in range(50):
+		for i in range(1):
 			(t,x,u)=next(solution)
 		exact=np.array(list(map(lambda xn:analytic(xn,t),x)))
 		line.set_data(x,exact)
@@ -227,3 +254,4 @@ solvers=[finite_volume(kurganov_petrova_flux),finite_volume(lax_wendroff_flux),k
 do_convergence_test(solvers)
 do_smooth_convergence_test(solvers)
 do_conservation_test(solvers)
+do_total_variation_test(solvers)
