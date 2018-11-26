@@ -52,9 +52,6 @@ def compute_wave_speed(h):
 
 """
 This computes the numerical flux used in the Kurganov-Petrova scheme
-
-I suspect there may be issues with this implementation as it isn't giving the 
-convergence rate that it ought to have.
 """
 def kurganov_petrova_flux(u,dx,dt):
 	#Compute numerical derivatives using minmod slope limiter
@@ -62,8 +59,8 @@ def kurganov_petrova_flux(u,dx,dt):
 	right_slope=(np.roll(u,-1,axis=1)-u)/dx
 	u_x=np.stack([minmod(left_slope[0],right_slope[0]),minmod(left_slope[1],right_slope[1])])
 	#Compute the left and right values of u at the cell edges
-	u_right=u+0.5*dx*u_x
-	u_left=np.roll(u,1,axis=1)-0.5*dx*np.roll(u_x,1,axis=1)
+	u_right=u-0.5*dx*u_x
+	u_left=np.roll(u,1,axis=1)+0.5*dx*np.roll(u_x,1,axis=1)
 	#Compute velocities at the cell edges
 	v_left=compute_velocity(u_left)
 	v_right=compute_velocity(u_right)	
