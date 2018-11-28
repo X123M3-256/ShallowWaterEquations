@@ -38,12 +38,12 @@ numerical scheme, so that they can be plotted. The results are written to the fi
 def do_dam_break_computation(solvers):
 	print("Computing solutions to dam break problem")
 	domain=(-2,2)
-	num_cells=1000
+	num_cells=1600
 	start=num_cells//4
 	end=num_cells-start
-	num_timesteps=400
+	num_timesteps=400*5
 	dx=(domain[1]-domain[0])/num_cells;
-	dt=0.0005
+	dt=0.0001
 	
 	f=open("dam_break.txt","w")
 
@@ -81,7 +81,7 @@ def do_convergence_test(solvers):
 	courant=4.0;
 	
 	f=open("convergence.txt","w")
-	for num_cells in [500,750,1000,1500,2000,3000,4000,6000,8000,12000]:
+	for num_cells in [60,125,250,500,750,1000,1500,2000,3000,4000,6000,8000,12000]:
 		
 		dx=(domain[1]-domain[0])/num_cells;
 		num_timesteps=int(courant*num_cells*time/(domain[1]-domain[0]))
@@ -156,10 +156,10 @@ numerical scheme, and computes values of the mass, momentum, and energy at
 def do_conservation_test(solvers):
 	print("Running conservation test")
 	domain=(-1,1)
-	num_cells=1000
-	num_timesteps=2000
+	num_cells=400
+	num_timesteps=1000
 	dx=(domain[1]-domain[0])/num_cells;
-	dt=0.0005
+	dt=0.001
 	
 	f=open("conservation.txt","w")
 	for solver in solvers:
@@ -167,7 +167,7 @@ def do_conservation_test(solvers):
 
 		for i in range(num_timesteps+1):
 			(t,x,u)=next(solution)
-			f.write("%f %f %f %f\n"%(t,integrate(u[0],dx),integrate(u[1],dx),integrate(0.5*u[1]*u[1]/u[0]+0.5*g*u[0]*u[0],dx)))
+			f.write("%f %f %f %f\n"%(t,integrate(u[0],dx)-1.1,integrate(u[1],dx),integrate(0.5*u[1]*u[1]/u[0]+0.5*g*u[0]*u[0],dx)-3.016575))
 		f.write("\n");
 	f.close();
 	print("Output written to conservation.txt\n")
